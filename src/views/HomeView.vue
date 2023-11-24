@@ -1,5 +1,8 @@
 <template>
-<div class="container" @click="settings=!settings">
+<div 
+  class="container" 
+  @mouseover="showPanel"
+  >
   <div 
     class="content">
       <iframe 
@@ -88,13 +91,13 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { v4 as uuidv4 } from "uuid"
 
 const iframeKey = ref(0)
-const panel = ref(true)
 const dialog = ref(false)
 const error = ref(null)
+const panel = ref(false)
 const displayCodeInput = ref(null)
 const displayCodeInputRef = ref(null)
 
@@ -116,6 +119,20 @@ const settings = reactive({
   dataReady: false,
 })
 
+const showPanel = (event) => {
+  if (event.clientY <= 100) {
+    panel.value = true
+    // setTimeout(() => {
+    //   if (!settings.displayCode) {
+    //     panel.value = false
+    //   }  
+    // }, 10000)
+
+  } else {
+    panel.value = false
+  }
+}
+
 const getPartnerLogo = () => {
   if (settings.partnerLogo && settings.partnerLogo.length) {
     return 'https://storage.yandexcloud.net/d24/partners/' + settings.partnerId + '/' + settings.partnerLogo
@@ -133,9 +150,9 @@ const settingsGo = () => {
 }
 
 const settingsRestore = () => {
-  const ls = localStorage.getItem("settings", null)
+  const ls = localStorage.getItem("settings", null) ? JSON.parse(localStorage.getItem("settings", null)) : null
   error.value = null
-
+   
   if (ls) {
     settings.partnerId = ls.partnerId ? ls.partnerId : null
     settings.partnerName = ls.partnerName ? ls.partnerName : null
@@ -157,7 +174,6 @@ const settingsRestore = () => {
 
 const dialog_check = async () => {
   displayCodeInputRef.value.$el.style = 'border-top: 0px solid green;'
-  settings.dataReady = false
   error.value = null
   var data = null 
 
@@ -168,7 +184,7 @@ const dialog_check = async () => {
   }
 
   try {
-      const response = await fetch(serverPath + '/api/v1/device/' + settings.displayCode, {
+      const response = await fetch(serverPath + '/api/v1/device/' + displayCodeInput.value, {
           method: 'GET',
           headers: {
               'Content-Type': 'application/json',
@@ -179,21 +195,16 @@ const dialog_check = async () => {
         throw new Error('Request failed');
       }
       data = await response.json();
-      console.log("Data: ", data)
 
   } catch (e) {
       error.value = e
-      settings.dataReady = false
-    return
+      return
   }
 
   if (data && data.data && data.data.length == 0) {
-    settings.dataReady = false
     error.value = "Код не существует"
     return
   }
-
-  return
 
   if (data && data.code && data.code == 200 && data.data.length > 0) {
     const settingsData = data.data[0]
@@ -208,21 +219,11 @@ const dialog_check = async () => {
     settings.displayToken = settingsData.display_token
     settings.layoutName = settingsData.layout_name
 
-    partnerName.value.innerText = settings.partnerName
-    displayCode.value.innerText = settings.displayCode
-    displayName.value.innerText = settings.displayName
-    displayDescription.value.innerText = settings.displayDescription
-    displayGroup.value.innerText = settings.displayGroup
-    layoutName.value.innerText = settings.layoutName
-
-    settings.dataReady = true
-    displayCodeBorder.value.$el.style.borderRadius = '50px'
-    displayCodeBorder.value.$el.style.border = '3px solid green'
-
-    //error.value.innerText = 'Все хорошо'
+    displayCodeInputRef.value.$el.style = 'border-top: 3px solid green;'
+    error.value = null
 
   } else {
-    loadSettingsFail("Ошибка чтения настроек")
+    error.value = "Ошибка чтения настроек"
     return
   }
 }
@@ -248,6 +249,7 @@ const dialog_save = () => {
   error.value = null
   localStorage.setItem("settings", JSON.stringify(settings))
   dialog.value = false
+  settings.dataReady = true
 }
 
 const dialog_cancel = () => {
