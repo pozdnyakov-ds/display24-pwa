@@ -55,27 +55,27 @@
             <div style="margin: 0 10px 0 10px;">
               <v-row class="data-row">
                 <v-col cols="6" class="data-item">Партнер:</v-col>
-                <v-col cols="6" class="data-item">{{ settings.partnerName ? settings.partnerName : "-" }}</v-col>
+                <v-col cols="6" class="data-item">{{ partnerNameValue ? partnerNameValue : "-" }}</v-col>
               </v-row>
               <v-row class="data-row">
                 <v-col cols="6" class="data-item">Код дисплея:</v-col>
-                <v-col cols="6" class="data-item">{{ settings.displayCode ? settings.displayCode : "-" }}</v-col>
+                <v-col cols="6" class="data-item">{{ displayCodeValue ? displayCodeValue : "-" }}</v-col>
               </v-row>
               <v-row class="data-row">
                 <v-col cols="6" class="data-item">Группа дисплея:</v-col>
-                <v-col cols="6" class="data-item">{{ settings.displayGroup ? settings.displayGroup : "-" }}</v-col>
+                <v-col cols="6" class="data-item">{{ displayGroupValue ? displayGroupValue : "-" }}</v-col>
               </v-row>
               <v-row class="data-row">
                 <v-col cols="6" class="data-item">Наименование дисплея:</v-col>
-                <v-col cols="6" class="data-item">{{ settings.displayName ? settings.displayName : "-" }}</v-col>
+                <v-col cols="6" class="data-item">{{ displayNameValue ? displayNameValue : "-" }}</v-col>
               </v-row>
               <v-row class="data-row">
                 <v-col cols="6" class="data-item">Описание дисплея:</v-col>
-                <v-col cols="6" class="data-item">{{ settings.displayDescription ? settings.displayDescription : "-" }}</v-col>
+                <v-col cols="6" class="data-item">{{ displayDescriptionValue ? displayDescriptionValue : "-" }}</v-col>
               </v-row>
               <v-row class="data-row">
                 <v-col cols="6" class="data-item">Макет:</v-col>
-                <v-col cols="6" class="data-item">{{ settings.layoutName ? settings.layoutName : "-" }}</v-col>
+                <v-col cols="6" class="data-item">{{ layoutNameValue ? layoutNameValue : "-" }}</v-col>
               </v-row>
             </div>
             <div class="error" v-if="error">Ошибка: {{ error }}</div>
@@ -123,8 +123,19 @@ const status = ref(false)
 const reloadCounter = ref(5)
 const statusCounter = ref(5)
 
-const nodeEnv = ref(process.env.NODE_ENV)
-const serverPath = process.env.NODE_ENV == 'development' ? 'http://localhost:5000' : 'https://dev116.ru'
+const partnerIdValue = ref(null)
+const partnerNameValue = ref(null)
+const partnerLogoValue = ref(null)
+const displayIdValue = ref(null)
+const displayCodeValue = ref(null)
+const displayNameValue = ref(null)
+const displayDescriptionValue = ref(null)
+const displayGroupValue = ref(null)
+const displayTokenValue = ref(null)
+const layoutNameValue = ref(null)
+
+//const nodeEnv = ref(import.meta.env.NODE_ENV)
+//const serverPath = import.meta.env.NODE_ENV == 'development' ? 'http://localhost:5000' : 'https://dev116.ru'
 
 const settings = reactive({
   partnerId: null,
@@ -161,11 +172,11 @@ const counterStatus = () => {
 }
 
 //Firebase init
-const firebaseConfig = {    
-    apiKey: 'AIzaSyBfTrlk1mDUHw124QEIPVRvk8o8aW8wTpM',
-    projectId: 'display24-3c078',
-    messagingSenderId: '121461843745',
-    appId: '1:121461843745:android:d2996ed490c740b6a78060',
+const firebaseConfig = {     
+    apiKey: import.meta.env.VITE_FB_API_KEY,
+    projectId: import.meta.env.VITE_FB_PROJECT_ID,
+    messagingSenderId: import.meta.env.VITE_FB_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FB_APP_ID,
 };
 const app = initializeApp(firebaseConfig)
 const messaging = getMessaging(app)
@@ -207,7 +218,7 @@ onMessage(messaging, (payload) => {
 
 //requestPermission
 function requestPermission() {
-  console.log('Requesting permission...');
+  //console.log('Requesting permission...');
   Notification.requestPermission().then((permission) => {
     if (permission === 'granted') {
       console.log('Notification permission granted.');
@@ -218,14 +229,14 @@ function requestPermission() {
 //sendRegistrationToServer
 const sendRegistrationToServer = async (token) => {
   const displayId = settings.displayId
-  console.log("FIREBASE TOKEN: ", token)
+  //console.log("FIREBASE TOKEN: ", token)
 
   const formData = new URLSearchParams();
   formData.append('device_id', displayId);
   formData.append('token', token);
 
   try {
-    const response = await fetch(serverPath + '/api/v1/device/', {
+    const response = await fetch(import.meta.env.VITE_SERVER_PATH + import.meta.env.VITE_ROUTE, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -260,7 +271,7 @@ const showPanel = (event) => {
 
 const getPartnerLogo = () => {
   if (settings.partnerLogo && settings.partnerLogo.length) {
-    return 'https://storage.yandexcloud.net/d24/partners/' + settings.partnerId + '/' + settings.partnerLogo
+    return import.meta.env.VITE_S3 + settings.partnerId + '/' + settings.partnerLogo
   } else {  
     return 'img/logo_512.png'
   }              
@@ -271,6 +282,13 @@ const refreshGo = () => {
 }
 
 const settingsGo = () => {
+  partnerNameValue.value = settings.partnerName
+  displayCodeValue.value = settings.displayCode
+  displayGroupValue.value = settings.displayGroup
+  displayNameValue.value = settings.displayName
+  displayDescriptionValue.value = settings.displayDescription
+  layoutNameValue.value = settings.layoutName
+
   dialog.value = true
 }
 
@@ -309,7 +327,7 @@ const dialog_check = async () => {
   }
 
   try {
-      const response = await fetch(serverPath + '/api/v1/device/' + displayCodeInput.value, {
+      const response = await fetch(import.meta.env.VITE_SERVER_PATH + import.meta.env.VITE_ROUTE + displayCodeInput.value, {
           method: 'GET',
           headers: {
               'Content-Type': 'application/json',
@@ -333,16 +351,16 @@ const dialog_check = async () => {
 
   if (data && data.code && data.code == 200 && data.data.length > 0) {
     const settingsData = data.data[0]
-    settings.partnerId = settingsData.partner_id
-    settings.partnerName = settingsData.partner_name
-    settings.partnerLogo = settingsData.partner_logo && settingsData.partner_logo.filename ? settingsData.partner_logo.filename : null
-    settings.displayId = settingsData.display_id
-    settings.displayCode = settingsData.display_code
-    settings.displayName = settingsData.display_name
-    settings.displayDescription = settingsData.display_description
-    settings.displayGroup = settingsData.display_group_name
-    settings.displayToken = settingsData.display_token
-    settings.layoutName = settingsData.layout_name
+    partnerIdValue.value = settingsData.partner_id
+    partnerNameValue.value = settingsData.partner_name
+    partnerLogoValue.value = settingsData.partner_logo && settingsData.partner_logo.filename ? settingsData.partner_logo.filename : null
+    displayIdValue.value = settingsData.display_id
+    displayCodeValue.value = settingsData.display_code
+    displayNameValue.value = settingsData.display_name
+    displayDescriptionValue.value = settingsData.display_description
+    displayGroupValue.value = settingsData.display_group_name
+    displayTokenValue.value = settingsData.display_token
+    layoutNameValue.value = settingsData.layout_name
 
     displayCodeInputRef.value.$el.style = 'border-top: 3px solid green;'
     error.value = null
@@ -360,6 +378,7 @@ const dialog_reset = () => {
   settings.partnerLogo = null
   settings.displayId = null
   settings.displayCode = null
+  displayCodeValue.value = null
   settings.displayCodeInput = null
   settings.displayName = null
   settings.displayDescription = null
@@ -368,13 +387,33 @@ const dialog_reset = () => {
   settings.layoutName = null
   settings.dataReady = false
   error.value = null
+
+  partnerIdValue.value = null
+  partnerNameValue.value = null
+  partnerLogoValue.value = null
+  displayIdValue.value = null
+  displayCodeValue.value = null
+  displayNameValue.value = null
+  displayDescriptionValue.value = null
+  displayGroupValue.value = null
+  displayTokenValue.value = null
+  layoutNameValue.value = null
 }
 
 const dialog_save = () => {
   error.value = null
-  localStorage.setItem("settings", JSON.stringify(settings))
   dialog.value = false
+  
+  settings.displayCode = displayCodeValue.value
+  settings.partnerName = partnerNameValue.value
+  settings.displayCode = displayCodeValue.value
+  settings.displayGroup = displayGroupValue.value
+  settings.displayName = displayNameValue.value
+  settings.displayDescription = displayDescriptionValue.value
+  settings.layoutName = layoutNameValue.value
   settings.dataReady = true
+
+  localStorage.setItem("settings", JSON.stringify(settings))
 }
 
 const dialog_cancel = () => {
@@ -387,7 +426,7 @@ onMounted(() => {
 
   // Firebase
   requestPermission()
-  getToken(messaging, { vapidKey: 'BE166Z44WSUJE7JvuFObi-2UdDJqyDWt2IQkN7yQ9lfFoAQDRc2A-Qb4Ra8AjHPouPoP4IZZp_993E5fL5Bvehg' }).then((currentToken) => {
+  getToken(messaging, { vapidKey: import.meta.env.VITE_VAPID_KEY }).then((currentToken) => {
     if (currentToken) {
       firebaseToken.value = currentToken
       sendRegistrationToServer(currentToken)
