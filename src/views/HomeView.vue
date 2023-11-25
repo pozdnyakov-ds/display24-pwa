@@ -87,6 +87,20 @@
         </v-card>
 </v-dialog>
 
+<v-dialog v-model="reload" persistent width="350">
+  <v-card class="status">
+      <v-card-text class="text-h6">Обновление дисплея</v-card-text>
+      <div class="status-text">{{ reloadCounter }}</div>
+  </v-card>
+</v-dialog>
+
+<v-dialog v-model="status" persistent width="350">
+  <v-card class="status">
+      <v-card-text class="text-h6">Приложение онлайн</v-card-text>
+      <div class="status-text">{{ statusCounter }}</div>
+  </v-card>
+</v-dialog>
+
 </div>
 </template>
 
@@ -94,12 +108,20 @@
 import { onMounted, reactive, ref } from 'vue'
 import { v4 as uuidv4 } from "uuid"
 
+import { initializeApp } from "firebase/app";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
+
 const iframeKey = ref(0)
 const dialog = ref(false)
 const error = ref(null)
 const panel = ref(false)
 const displayCodeInput = ref(null)
 const displayCodeInputRef = ref(null)
+const firebaseToken = ref(null)
+const reload = ref(false)
+const status = ref(false)
+const reloadCounter = ref(5)
+const statusCounter = ref(5)
 
 const nodeEnv = ref(process.env.NODE_ENV)
 const serverPath = process.env.NODE_ENV == 'development' ? 'http://localhost:5000' : 'https://dev116.ru'
@@ -118,6 +140,109 @@ const settings = reactive({
   layoutName: null, 
   dataReady: false,
 })
+
+const counterReload = () => {
+  reloadCounter.value = reloadCounter.value - 1
+  if (reloadCounter.value > 0) {
+    setTimeout(counterReload, 1000)
+  } else {
+    reload.value = false
+    refreshGo()
+  } 
+}
+
+const counterStatus = () => {
+  statusCounter.value = statusCounter.value - 1
+  if (statusCounter.value > 0) {
+    setTimeout(counterStatus, 1000)
+  } else {
+    status.value = false
+  } 
+}
+
+//Firebase init
+const firebaseConfig = {    
+    apiKey: 'AIzaSyBfTrlk1mDUHw124QEIPVRvk8o8aW8wTpM',
+    projectId: 'display24-3c078',
+    messagingSenderId: '121461843745',
+    appId: '1:121461843745:android:d2996ed490c740b6a78060',
+};
+const app = initializeApp(firebaseConfig)
+const messaging = getMessaging(app)
+
+//onMessage
+onMessage(messaging, (payload) => {
+  console.log('Получено сообщение сервера: ', payload)
+
+  const data = { ...payload.notification, ...payload.data }
+  const notificationTitle = data.title
+  const notificationOptions = {
+      body: data.body,
+      icon: data.icon,
+      image: data.image,
+      click_action: data.click_action,
+      requireInteraction: true,
+      data
+  };
+  new Notification(payload.notification.title, payload.notification)
+
+  if (!data || !data.mode) {
+    return
+  }
+  switch (Number(data.mode)) {
+    case 1: 
+      // Display refresh
+      reload.value = true
+      reloadCounter.value = 6
+      counterReload()
+      break
+    case 2: 
+      // Check status
+      status.value = true
+      statusCounter.value = 6
+      counterStatus()
+      break  
+  }
+})
+
+//requestPermission
+function requestPermission() {
+  console.log('Requesting permission...');
+  Notification.requestPermission().then((permission) => {
+    if (permission === 'granted') {
+      console.log('Notification permission granted.');
+    }
+  })
+}
+
+//sendRegistrationToServer
+const sendRegistrationToServer = async (token) => {
+  const displayId = settings.displayId
+  console.log("FIREBASE TOKEN: ", token)
+
+  const formData = new URLSearchParams();
+  formData.append('device_id', displayId);
+  formData.append('token', token);
+
+  try {
+    const response = await fetch(serverPath + '/api/v1/device/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString()
+    })
+   
+    if (!response.ok) {
+      throw new Error('Send Registration failed');
+    }
+    const data = await response.json();
+        
+  } catch (e) {
+    settings.dataReady = false
+    return
+  }
+}
 
 const showPanel = (event) => {
   if (event.clientY <= 100) {
@@ -259,6 +384,20 @@ const dialog_cancel = () => {
 
 onMounted(() => {
   settingsRestore()
+
+  // Firebase
+  requestPermission()
+  getToken(messaging, { vapidKey: 'BE166Z44WSUJE7JvuFObi-2UdDJqyDWt2IQkN7yQ9lfFoAQDRc2A-Qb4Ra8AjHPouPoP4IZZp_993E5fL5Bvehg' }).then((currentToken) => {
+    if (currentToken) {
+      firebaseToken.value = currentToken
+      sendRegistrationToServer(currentToken)
+    } else {
+      console.log('No registration token available. Request permission to generate one.');
+    }
+  }).catch((err) => {
+    console.log('An error occurred while retrieving token. ', err);
+  });
+
 })
 
 </script>
@@ -346,6 +485,24 @@ onMounted(() => {
   font-size: 200%;
   cursor: pointer;
   padding: 0 20px 10px 20px;
+}
+.status {
+  margin: 0 20px 30px 0;
+  border-radius: 20px !important;
+  border: 5px solid #fff;
+  box-shadow: 0 2px 6px 0 rgb(0, 0, 0, 0.25);
+  color: #fff;
+  background-color: #428CFF;
+  font-size: 200%;
+  cursor: pointer;
+  padding: 0 20px 10px 20px;
+  align-items: center;
+}
+.status-text {
+  color: #fff;
+  font-size: 150%;
+  width: 100%;
+  text-align: center;
 }
 .data-item {
   font-size: 16px;

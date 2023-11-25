@@ -8,7 +8,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   plugins: [
     vue(),
-    VitePWA({ 
+    VitePWA({
       registerType: 'autoUpdate',
       devOptions: {
         enabled: true
@@ -38,5 +38,14 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
-  }
+  },
+  // server: {
+  //   proxy: {
+  //     '/api': {
+  //       target: 'https://dev116.ru/api',
+  //       changeOrigin: true,
+  //       rewrite: (path) => path.replace(/^\/api/, ''),
+  //     },
+  //   },
+  // },
 })

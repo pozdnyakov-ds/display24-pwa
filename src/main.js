@@ -21,6 +21,16 @@ const vuetify = createVuetify({
     directives
 })
 
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      .then((registration) => {
+        console.log('Service Worker registered with scope:', registration.scope);
+      })
+      .catch((error) => {
+        console.error('Error registering Service Worker:', error);
+      });
+}
+
 const app = createApp(App)
 
 app.use(createPinia())
