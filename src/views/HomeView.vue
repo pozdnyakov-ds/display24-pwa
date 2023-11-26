@@ -369,7 +369,7 @@ const dialog_check = async () => {
     displayNameValue.value = settingsData.display_name
     displayDescriptionValue.value = settingsData.display_description
     displayGroupValue.value = settingsData.display_group_name
-    displayTokenValue.value = settingsData.display_token
+    //displayTokenValue.value = settingsData.display_token
     layoutNameValue.value = settingsData.layout_name
 
     displayCodeInputRef.value.$el.style = 'border-top: 3px solid green;'
@@ -414,16 +414,22 @@ const dialog_save = () => {
   error.value = null
   dialog.value = false
   
-  settings.displayCode = displayCodeValue.value
+  settings.partnerId = partnerIdValue.value
   settings.partnerName = partnerNameValue.value
+  settings.partnerLogo = partnerLogoValue.value
+
+  settings.displayId = displayIdValue.value
   settings.displayCode = displayCodeValue.value
   settings.displayGroup = displayGroupValue.value
   settings.displayName = displayNameValue.value
   settings.displayDescription = displayDescriptionValue.value
-  settings.layoutName = layoutNameValue.value
-  settings.dataReady = true
-  sendRegistrationToServer()
 
+  settings.layoutName = layoutNameValue.value
+  if (settings.displayCode && settings.displayCode.length == 10) {
+    settings.dataReady = true
+    sendRegistrationToServer()
+  }  
+  
   localStorage.setItem("settings", JSON.stringify(settings))
 }
 
@@ -437,6 +443,7 @@ onMounted(() => {
 
   // Firebase
   requestPermission()
+
   getToken(messaging, { vapidKey: import.meta.env.VITE_VAPID_KEY }).then((currentToken) => {
     if (currentToken) {
       firebaseToken.value = currentToken
