@@ -1,17 +1,13 @@
 <template>
-<div 
-  class="container" 
-  @mouseover="showPanel"
-  >
-  <div 
-    class="content">
-      <iframe 
-        v-if="settings.dataReady"
-        :src="'https://display24.ru/device?code=' + settings.displayCode"
-        :style="{ width: '100%', height: '100%' }" 
-        scrolling="yes" 
-        :key="iframeKey">
-      </iframe>
+<div class="container">
+  <div class="content">
+    <iframe 
+      v-if="settings.dataReady"
+      :src="'https://display24.ru/device?code=' + settings.displayCode"
+      :style="{ width: '100%', height: '100%', borderWidth: '0px' }" 
+      scrolling="no" 
+      :key="iframeKey">
+    </iframe>
   </div>
 
   <div class="logo" v-if="!settings.dataReady">
@@ -24,6 +20,12 @@
     <div class="logo-no-code">
       Необходимо установить параметры дисплея
     </div>    
+  </div>
+
+  <div 
+    class="panel-zone" 
+    @click="showPanelTemp"
+    >
   </div>
 
   <div class="panel" v-if="panel || !settings.dataReady">
@@ -227,9 +229,9 @@ function requestPermission() {
 }
 
 //sendRegistrationToServer
-const sendRegistrationToServer = async (token) => {
+const sendRegistrationToServer = async () => {
   const displayId = settings.displayId
-  //console.log("FIREBASE TOKEN: ", token)
+  const token = firebaseToken.value
 
   const formData = new URLSearchParams();
   formData.append('device_id', displayId);
@@ -258,11 +260,19 @@ const sendRegistrationToServer = async (token) => {
 const showPanel = (event) => {
   if (event.clientY <= 100) {
     panel.value = true
-    // setTimeout(() => {
-    //   if (!settings.displayCode) {
-    //     panel.value = false
-    //   }  
-    // }, 10000)
+  } else {
+    panel.value = false
+  }
+}
+
+const showPanelTemp = (event) => {
+  if (!panel.value) {
+    panel.value = true
+    setTimeout(() => {
+      if (settings.displayCode) {
+        panel.value = false
+      }  
+    }, 5000)
 
   } else {
     panel.value = false
@@ -412,6 +422,7 @@ const dialog_save = () => {
   settings.displayDescription = displayDescriptionValue.value
   settings.layoutName = layoutNameValue.value
   settings.dataReady = true
+  sendRegistrationToServer()
 
   localStorage.setItem("settings", JSON.stringify(settings))
 }
@@ -429,7 +440,9 @@ onMounted(() => {
   getToken(messaging, { vapidKey: import.meta.env.VITE_VAPID_KEY }).then((currentToken) => {
     if (currentToken) {
       firebaseToken.value = currentToken
-      sendRegistrationToServer(currentToken)
+      if (settings.dataReady) {
+        sendRegistrationToServer()
+      }  
     } else {
       console.log('No registration token available. Request permission to generate one.');
     }
@@ -482,6 +495,15 @@ onMounted(() => {
   color: #fff;
   background-color: black;
 }
+.panel-zone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh; 
+  z-index: 999;
+  background-color: transparent;
+}
 .panel {
   position: absolute;
   top: 0;
@@ -524,6 +546,7 @@ onMounted(() => {
   font-size: 200%;
   cursor: pointer;
   padding: 0 20px 10px 20px;
+  z-index: 9999;
 }
 .status {
   margin: 0 20px 30px 0;

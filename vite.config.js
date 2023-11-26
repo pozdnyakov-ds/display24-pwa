@@ -19,6 +19,8 @@ export default defineConfig({
         short_name: 'D24 Player',
         description: 'Display24 Player',
         theme_color: '#ffffff',
+        display: "fullscreen",
+        orientation: "any",
         icons: [
           {
             src: 'img/android-launchericon-192-192.png',
