@@ -10,6 +10,11 @@
     </iframe>
   </div>
 
+  <!-- <div style="z-index: 999999; color: #fff; width: 100%; height: 100px; background-color: brown; position: absolute; top: 0; left: 0;">
+    PLATFORM: {{ getPlatformData() }}<hr>
+    TOKEN: {{ firebaseToken }}
+  </div> -->
+
   <div class="logo" v-if="!settings.dataReady">
     <img
       :src="getPartnerLogo()"
@@ -48,6 +53,7 @@
                   label="Код дисплея"
                   required
                   v-model="displayCodeInput"
+                  autofocus
                 ></v-text-field>
               </v-col>
               <v-col cols="4">
@@ -107,11 +113,31 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { v4 as uuidv4 } from "uuid"
+import { useIndexStore } from '../stores/index'
 
 import { initializeApp } from "firebase/app";
 import { getMessaging, getToken, onMessage } from "firebase/messaging";
+
+const indexStore = useIndexStore()
+
+watch(() => indexStore.mode, () => {
+  switch (Number(indexStore.mode)) {
+    case 1: 
+      // Display refresh
+      reload.value = true
+      reloadCounter.value = 6
+      counterReload()
+      break
+    case 2: 
+      // Check status
+      status.value = true
+      statusCounter.value = 6
+      counterStatus()
+      break  
+  }
+})
 
 const iframeKey = ref(0)
 const dialog = ref(false)
@@ -136,7 +162,6 @@ const displayGroupValue = ref(null)
 const displayTokenValue = ref(null)
 const layoutNameValue = ref(null)
 
-//const nodeEnv = ref(import.meta.env.NODE_ENV)
 //const serverPath = import.meta.env.NODE_ENV == 'development' ? 'http://localhost:5000' : 'https://dev116.ru'
 
 const settings = reactive({
@@ -173,13 +198,15 @@ const counterStatus = () => {
   } 
 }
 
-//Firebase init
+//Firebase WEB
 const firebaseConfig = {     
     apiKey: import.meta.env.VITE_FB_API_KEY,
     projectId: import.meta.env.VITE_FB_PROJECT_ID,
     messagingSenderId: import.meta.env.VITE_FB_MESSAGING_SENDER_ID,
-    appId: import.meta.env.VITE_FB_APP_ID,
+    appId: import.meta.env.VITE_FB_APP_ID_ANDROID,
+    measurementId: import.meta.env.VITE_FB_MEASUREMENT_ID
 };
+
 const app = initializeApp(firebaseConfig)
 const messaging = getMessaging(app)
 
@@ -197,7 +224,9 @@ onMessage(messaging, (payload) => {
       requireInteraction: true,
       data
   };
-  new Notification(payload.notification.title, payload.notification)
+  if (payload.notification && payload.notification.title)  {
+    new Notification(payload.notification.title, payload.notification)
+  }
 
   if (!data || !data.mode) {
     return
@@ -438,24 +467,28 @@ const dialog_cancel = () => {
   dialog.value = false
 }
 
-onMounted(() => {
+function getPlatformData() {
+    return window.navigator.userAgent
+}
+
+onMounted(async () => {
   settingsRestore()
 
   // Firebase
   requestPermission()
 
-  getToken(messaging, { vapidKey: import.meta.env.VITE_VAPID_KEY }).then((currentToken) => {
-    if (currentToken) {
-      firebaseToken.value = currentToken
-      if (settings.dataReady) {
-        sendRegistrationToServer()
-      }  
-    } else {
-      console.log('No registration token available. Request permission to generate one.');
-    }
-  }).catch((err) => {
-    console.log('An error occurred while retrieving token. ', err);
-  });
+  const currentToken = await getToken(messaging, { vapidKey: import.meta.env.VITE_VAPID_KEY })
+  //const currentToken = await getToken(messaging)
+  
+  if (currentToken) {
+    console.log("TOKEN: ", currentToken)
+    firebaseToken.value = currentToken
+    if (settings.dataReady) {
+      sendRegistrationToServer()
+    }  
+  } else {
+    console.log('No registration token available. Request permission to generate one.');
+  }
 
 })
 
