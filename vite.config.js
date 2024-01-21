@@ -18,7 +18,7 @@ export default defineConfig({
         name: 'Display24 Player',
         short_name: 'D24 Player',
         description: 'Display24 Player',
-        theme_color: '#ffffff',
+        theme_color: '#000000',
         display: "fullscreen",
         orientation: "any",
         icons: [
@@ -31,6 +31,13 @@ export default defineConfig({
             src: 'img/android-launchericon-512-512.png',
             sizes: '512x512',
             type: 'image/png'
+          }
+        ],
+        "prefer_related_applications": true,
+        "related_applications": [
+          {
+            "platform": "play",
+            "id": "com.display24.web"
           }
         ]
       },

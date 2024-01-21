@@ -1,115 +1,118 @@
 <template>
-<div class="container">
-  <div class="content">
-    <iframe 
-      v-if="settings.dataReady"
-      :src="'https://display24.ru/device?code=' + settings.displayCode"
-      :style="{ width: '100%', height: '100%', borderWidth: '0px' }" 
-      scrolling="no" 
-      :key="iframeKey">
-    </iframe>
+<v-app>
+  <div class="container">
+    <div class="content">
+      <iframe 
+        v-if="settings.dataReady"
+        :src="'https://display24.ru/device?code=' + settings.displayCode"
+        :style="{ width: '100%', height: '100%', borderWidth: '0px' }" 
+        scrolling="no" 
+        :key="iframeKey">
+      </iframe>
+    </div>
+
+    <!-- <div style="z-index: 999999; color: #fff; width: 100%; height: 100px; background-color: brown; position: absolute; top: 0; left: 0;">
+      PLATFORM: {{ getPlatformData() }}<hr>
+      TOKEN: {{ firebaseToken }}
+    </div> -->
+
+    <div class="logo" v-if="!settings.dataReady">
+      <img
+        :src="getPartnerLogo()"
+        :alt="settings.partnerName"
+        style="width: 250px; margin-bottom: 30px;"
+      >
+      <div style="font-size: 32pt; margin-bottom: 10px;">Display24</div>
+      <div class="logo-no-code">
+        Необходимо установить параметры дисплея
+      </div>    
+    </div>
+
+    <div 
+      class="panel-zone" 
+      @click="showPanelTemp"
+      >
+    </div>
+
+    <div class="panel" v-if="panel || !settings.dataReady">
+      <v-btn class="btn" @click.prevent="refreshGo">
+        <font-awesome-icon icon="fa-solid fa-rotate-right" />
+      </v-btn>
+      <v-btn class="btn" @click.prevent="settingsGo">
+        <font-awesome-icon icon="fa-solid fa-gear" />
+      </v-btn>
+    </div>
+
+    <v-dialog v-model="dialog" persistent width="500">
+          <v-card class="dialog">
+              <v-card-text class="text-h6">Настройки приложения</v-card-text>
+              <v-row>
+                <v-col cols="8">
+                  <v-text-field
+                    ref="displayCodeInputRef"
+                    style="margin: 0;"
+                    label="Код дисплея"
+                    required
+                    v-model="displayCodeInput"
+                    autofocus
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="4">
+                  <!-- <v-btn color="green-darken-1" variant="tonal" @click="dialog_check">Проверить</v-btn> -->
+                  <button @click="dialog_check" style="background-color: #354036; color: #429746; font-size: 11pt; padding: 10px 15px 10px 15px; border-radius: 5px;">ПРОВЕРИТЬ</button>
+                </v-col>
+              </v-row>
+              <div style="margin: 0 10px 0 10px;">
+                <v-row class="data-row">
+                  <v-col cols="6" class="data-item">Партнер:</v-col>
+                  <v-col cols="6" class="data-item">{{ partnerNameValue ? partnerNameValue : "-" }}</v-col>
+                </v-row>
+                <v-row class="data-row">
+                  <v-col cols="6" class="data-item">Код дисплея:</v-col>
+                  <v-col cols="6" class="data-item">{{ displayCodeValue ? displayCodeValue : "-" }}</v-col>
+                </v-row>
+                <v-row class="data-row">
+                  <v-col cols="6" class="data-item">Группа дисплея:</v-col>
+                  <v-col cols="6" class="data-item">{{ displayGroupValue ? displayGroupValue : "-" }}</v-col>
+                </v-row>
+                <v-row class="data-row">
+                  <v-col cols="6" class="data-item">Наименование дисплея:</v-col>
+                  <v-col cols="6" class="data-item">{{ displayNameValue ? displayNameValue : "-" }}</v-col>
+                </v-row>
+                <v-row class="data-row">
+                  <v-col cols="6" class="data-item">Описание дисплея:</v-col>
+                  <v-col cols="6" class="data-item">{{ displayDescriptionValue ? displayDescriptionValue : "-" }}</v-col>
+                </v-row>
+                <v-row class="data-row">
+                  <v-col cols="6" class="data-item">Макет:</v-col>
+                  <v-col cols="6" class="data-item">{{ layoutNameValue ? layoutNameValue : "-" }}</v-col>
+                </v-row>
+              </div>
+              <div class="error" v-if="error">Ошибка: {{ error }}</div>
+              <v-card-actions class="actions">
+                  <v-btn class="btn-actions" color="green-darken-1" variant="tonal" @click="dialog_reset">Сбросить</v-btn>
+                  <v-btn class="btn-actions" color="green-darken-1" variant="tonal" @click="dialog_save">Сохранить</v-btn>
+                  <v-btn class="btn-actions" color="green-darken-1" variant="tonal" @click="dialog_cancel">Отмена</v-btn>
+              </v-card-actions>
+          </v-card>
+  </v-dialog>
+
+  <v-dialog v-model="reload" persistent width="350">
+    <v-card class="status">
+        <v-card-text class="text-h6">Обновление дисплея</v-card-text>
+        <div class="status-text">{{ reloadCounter }}</div>
+    </v-card>
+  </v-dialog>
+
+  <v-dialog v-model="status" persistent width="350">
+    <v-card class="status">
+        <v-card-text class="text-h6">Приложение онлайн</v-card-text>
+        <div class="status-text">{{ statusCounter }}</div>
+    </v-card>
+  </v-dialog>
+
   </div>
-
-  <!-- <div style="z-index: 999999; color: #fff; width: 100%; height: 100px; background-color: brown; position: absolute; top: 0; left: 0;">
-    PLATFORM: {{ getPlatformData() }}<hr>
-    TOKEN: {{ firebaseToken }}
-  </div> -->
-
-  <div class="logo" v-if="!settings.dataReady">
-    <img
-      :src="getPartnerLogo()"
-      :alt="settings.partnerName"
-      style="width: 250px; margin-bottom: 30px;"
-    >
-    <div style="font-size: 32pt; margin-bottom: 10px;">Display24</div>
-    <div class="logo-no-code">
-      Необходимо установить параметры дисплея
-    </div>    
-  </div>
-
-  <div 
-    class="panel-zone" 
-    @click="showPanelTemp"
-    >
-  </div>
-
-  <div class="panel" v-if="panel || !settings.dataReady">
-    <v-btn class="btn" @click.prevent="refreshGo">
-      <font-awesome-icon icon="fa-solid fa-rotate-right" />
-    </v-btn>
-    <v-btn class="btn" @click.prevent="settingsGo">
-      <font-awesome-icon icon="fa-solid fa-gear" />
-    </v-btn>
-  </div>
-
-  <v-dialog v-model="dialog" persistent width="500">
-        <v-card class="dialog">
-            <v-card-text class="text-h6">Настройки приложения</v-card-text>
-            <v-row>
-              <v-col cols="8">
-                <v-text-field
-                  ref="displayCodeInputRef"
-                  style="margin: 0;"
-                  label="Код дисплея"
-                  required
-                  v-model="displayCodeInput"
-                  autofocus
-                ></v-text-field>
-              </v-col>
-              <v-col cols="4">
-                <v-btn color="green-darken-1" variant="tonal" @click="dialog_check">Проверить</v-btn>
-              </v-col>
-            </v-row>
-            <div style="margin: 0 10px 0 10px;">
-              <v-row class="data-row">
-                <v-col cols="6" class="data-item">Партнер:</v-col>
-                <v-col cols="6" class="data-item">{{ partnerNameValue ? partnerNameValue : "-" }}</v-col>
-              </v-row>
-              <v-row class="data-row">
-                <v-col cols="6" class="data-item">Код дисплея:</v-col>
-                <v-col cols="6" class="data-item">{{ displayCodeValue ? displayCodeValue : "-" }}</v-col>
-              </v-row>
-              <v-row class="data-row">
-                <v-col cols="6" class="data-item">Группа дисплея:</v-col>
-                <v-col cols="6" class="data-item">{{ displayGroupValue ? displayGroupValue : "-" }}</v-col>
-              </v-row>
-              <v-row class="data-row">
-                <v-col cols="6" class="data-item">Наименование дисплея:</v-col>
-                <v-col cols="6" class="data-item">{{ displayNameValue ? displayNameValue : "-" }}</v-col>
-              </v-row>
-              <v-row class="data-row">
-                <v-col cols="6" class="data-item">Описание дисплея:</v-col>
-                <v-col cols="6" class="data-item">{{ displayDescriptionValue ? displayDescriptionValue : "-" }}</v-col>
-              </v-row>
-              <v-row class="data-row">
-                <v-col cols="6" class="data-item">Макет:</v-col>
-                <v-col cols="6" class="data-item">{{ layoutNameValue ? layoutNameValue : "-" }}</v-col>
-              </v-row>
-            </div>
-            <div class="error" v-if="error">Ошибка: {{ error }}</div>
-            <v-card-actions class="actions">
-                <v-btn class="btn-actions" color="green-darken-1" variant="tonal" @click="dialog_reset">Сбросить</v-btn>
-                <v-btn class="btn-actions" color="green-darken-1" variant="tonal" @click="dialog_save">Сохранить</v-btn>
-                <v-btn class="btn-actions" color="green-darken-1" variant="tonal" @click="dialog_cancel">Отмена</v-btn>
-            </v-card-actions>
-        </v-card>
-</v-dialog>
-
-<v-dialog v-model="reload" persistent width="350">
-  <v-card class="status">
-      <v-card-text class="text-h6">Обновление дисплея</v-card-text>
-      <div class="status-text">{{ reloadCounter }}</div>
-  </v-card>
-</v-dialog>
-
-<v-dialog v-model="status" persistent width="350">
-  <v-card class="status">
-      <v-card-text class="text-h6">Приложение онлайн</v-card-text>
-      <div class="status-text">{{ statusCounter }}</div>
-  </v-card>
-</v-dialog>
-
-</div>
+</v-app>
 </template>
 
 <script setup>
@@ -366,6 +369,7 @@ const dialog_check = async () => {
   }
 
   try {
+      //console.log("PATH: ", import.meta.env.VITE_SERVER_PATH + import.meta.env.VITE_ROUTE + displayCodeInput.value)
       const response = await fetch(import.meta.env.VITE_SERVER_PATH + import.meta.env.VITE_ROUTE + displayCodeInput.value, {
           method: 'GET',
           headers: {
@@ -481,7 +485,7 @@ onMounted(async () => {
   //const currentToken = await getToken(messaging)
   
   if (currentToken) {
-    console.log("TOKEN: ", currentToken)
+    //console.log("TOKEN: ", currentToken)
     firebaseToken.value = currentToken
     if (settings.dataReady) {
       sendRegistrationToServer()
