@@ -20,6 +20,7 @@ export default defineConfig({
         description: 'Display24 Player',
         theme_color: '#000000',
         display: "fullscreen",
+        start_url: "/?fullscreen=true",
         orientation: "any",
         icons: [
           {
