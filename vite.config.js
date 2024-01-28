@@ -51,7 +51,7 @@ export default defineConfig({
   // server: {
   //   proxy: {
   //     '/api': {
-  //       target: 'https://dev116.ru/api',
+  //       target: 'https://player.display24.ru/api',
   //       changeOrigin: true,
   //       rewrite: (path) => path.replace(/^\/api/, ''),
   //     },

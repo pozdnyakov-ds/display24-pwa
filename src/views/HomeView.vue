@@ -165,7 +165,7 @@ const displayGroupValue = ref(null)
 const displayTokenValue = ref(null)
 const layoutNameValue = ref(null)
 
-//const serverPath = import.meta.env.NODE_ENV == 'development' ? 'http://localhost:5000' : 'https://dev116.ru'
+//const serverPath = import.meta.env.NODE_ENV == 'development' ? 'http://localhost:5000' : 'https://player.display24.ru'
 
 const settings = reactive({
   partnerId: null,
